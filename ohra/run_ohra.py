@@ -1,23 +1,29 @@
 #!/usr/bin/env python
 
+
+
 import datetime
 from pathlib import Path
 from typing import Optional
 import numpy as np
+import xarray as xr
 
 import cftime
 
 import pygetm
 
+
+
 setup = "ohra"
-setup = "kinneret"
 nz = 20
-ddu = 0.75
-ddl = 0.75
-Dgamma = 10.0
+ddu = 1.5
+ddl = 0.5
+Dgamma = 15.0
 timestep = 0.8
 use_adaptive = False
-
+light_A = 0.58
+light_kc1 = 2.5
+light_kc2 = 1.0
 
 def create_domain(
     runtype: int,
@@ -42,26 +48,40 @@ def create_domain(
     domain.limit_velocity_depth()
     domain.cfl_check()
     domain.mask_shallow(1.0)
-
-    # if rivers:
-    if False:
-        river_list = []
-        for river in glob.glob(os.path.join("Rivers", "inflow_q*.nc")):
-            name = os.path.basename(river)
-            name = name.replace("inflow_q_", "").replace(".nc", "")
-            with netCDF4.Dataset(river) as r:
-                lon = r["lon"][:]
-                lat = r["lat"][:]
-                river_list.append(
-                    domain.rivers.add_by_location(
-                        name,
-                        float(lon),
-                        float(lat),
-                        coordinate_type=pygetm.CoordinateType.LONLAT,
-                    )
-                )
+    if rivers:
+       river_list = []
+       # Inflows
+       for river in glob.glob("Rivers/Inflow_*.nc"):
+           name = os.path.basename(river)
+           name = name.replace("Inflow_", "").replace(".nc", "")
+           with netCDF4.Dataset(river) as r:
+               lon = r["lon"][:]
+               lat = r["lat"][:]
+               river_list.append(
+                   domain.rivers.add_by_location(
+                       name,
+                       float(lon),
+                       float(lat),
+                       coordinate_type=pygetm.CoordinateType.LONLAT
+                   )
+               )
+       # Outflows
+ #      for river in glob.glob("Rivers/Outflow.nc"):
+ #          name = os.path.basename(river)
+ #          name = name.replace("Outflow", "").replace(".nc", "")
+ #          with netCDF4.Dataset(river) as r:
+ #              lon = r["lon"][:]
+ #              lat = r["lat"][:]
+ #              river_list.append(
+ #                  domain.rivers.add_by_location(
+ #                      name, float(lon), float(lat), coordinate_type=pygetm.CoordinateType.LONLAT
+ #                  )
+ #             )
 
     return domain
+
+
+# Initialize airsea with DOWNWARD_FLUX for SSRD
 
 
 def create_simulation(
@@ -69,11 +89,18 @@ def create_simulation(
     runtype: pygetm.RunType,
     **kwargs,
 ) -> pygetm.simulation.Simulation:
+    import numpy as np
+    import pandas as pd
+    import os
+
     global use_adaptive
-    if False:
-        internal_pressure_method = pygetm.internal_pressure.BlumbergMellor()
-    else:
+    if True:
         internal_pressure = pygetm.internal_pressure.ShchepetkinMcwilliams()
+    else:
+        internal_pressure = pygetm.internal_pressure.BlumbergMellor()
+
+    if True:
+        airsea = pygetm.FluxesFromMeteo(shortwave_method=pygetm.ShortwaveMethod.DOWNWARD_FLUX)
 
     if True:
         vertical_coordinates = pygetm.vertical_coordinates.GVC(
@@ -125,22 +152,28 @@ def create_simulation(
     final_kwargs = dict(
         advection_scheme=pygetm.AdvectionScheme.SUPERBEE,
         # gotm=os.path.join(setup_dir, "gotmturb.nml"),
-        # airsea=airsea,
+         airsea=airsea,
         internal_pressure=internal_pressure,
         vertical_coordinates=vertical_coordinates,
-        delay_slow_ip=True,
+        delay_slow_ip=True
+     #   Dmin = 3
     )
     final_kwargs.update(kwargs)
-    sim = pygetm.Simulation(domain, runtype=runtype, **final_kwargs)
-
+    sim = pygetm.Simulation(domain, runtype=runtype, gotm = "gotm.yaml", **final_kwargs)
+   # sim = pygetm.Simulation(domain, runtype=runtype, gotm = "gotm.yaml",  **final_kwargs)
+  #  sim = pygetm.Simulation(domain, runtype=runtype, fabm = "fabm-selmaprotbas.yaml", **final_kwargs)
     if sim.runtype < pygetm.RunType.BAROCLINIC:
         sim.sst = sim.airsea.t2m
     if sim.runtype == pygetm.RunType.BAROCLINIC:
         sim.radiation.set_jerlov_type(pygetm.Jerlov.Type_II)
+        sim.radiation.A.fill(light_A)
+        sim.radiation.kc1.fill(light_kc1)
+        sim.radiation.kc2.fill(light_kc2)
+
 
     if not args.load_restart and sim.runtype == pygetm.RunType.BAROCLINIC:
         if True:
-           sim.temp.set(2)
+           sim.temp.set(4)
            sim.salt.set(0.1)
         else:
             print("Read froom files")
@@ -155,17 +188,38 @@ def create_simulation(
         sim.salt[..., sim.T.mask == 0] = pygetm.constants.FILL_VALUE
 
     ERA_path = "ERA5/era5_????.nc"
-    sim.airsea.u10.set(pygetm.input.from_nc(ERA_path, "u10"))
-    sim.airsea.v10.set(pygetm.input.from_nc(ERA_path, "v10"))
+    sim.airsea.u10.set(pygetm.input.from_nc(ERA_path, "u10")*1.2)
+    sim.airsea.v10.set(pygetm.input.from_nc(ERA_path, "v10")*1.2)
     sim.airsea.t2m.set(pygetm.input.from_nc(ERA_path, "t2m") - 273.15)
     sim.airsea.d2m.set(pygetm.input.from_nc(ERA_path, "d2m") - 273.15)
     sim.airsea.sp.set(pygetm.input.from_nc(ERA_path, "sp"))
     sim.airsea.tcc.set(pygetm.input.from_nc(ERA_path, "tcc"))
     ERA_path = "ERA5/precip_????.nc"
     sim.airsea.tp.set(pygetm.input.from_nc(ERA_path, "tp") / 3600.0)
-
+    if sim.airsea.shortwave_method == pygetm.DOWNWARD_FLUX:
+        ERA_path = "ERA5/ssrd_????.nc"
+        sim.airsea.swr.downwards.set(
+            pygetm.input.from_nc(ERA_path, "ssrd")* ( 0.8/3600.0 )
+        )
+ #   for river in sim.rivers.values():
+ #      if "outflow" in river.name:
+ #          ### Outflow
+ #          river.flow.set(pygetm.input.from_nc(f"Rivers/Outflow_file_{river.name}.nc", "q"))
+ #      else:
+ #          ### Inflow
+ #          river.flow.set(pygetm.input.from_nc(f"Rivers/Inflow_file_{river.name}.nc", "q"))         
+ #          river["temp"].follow_target_cell = False #(True makes it use the value from the basin)
+ #          river["temp"].set(pygetm.input.from_nc(f"Rivers/Inflow_file_{river.name}.nc", "Temp"))
+           # Nutrients
+         #  river["selmaprotbas_po"].follow_target_cell = False #(True makes it use the value from the basin)
+         #  river["selmaprotbas_po"].set(pygetm.input.from_nc(f"Rivers/Inflow_file_{river.name}.nc", "PO4"))  
+         #  river["selmaprotbas_nn"].follow_target_cell = False
+         #  river["selmaprotbas_nn"].set(pygetm.input.from_nc(f"Rivers/Inflow_file_{river.name}.nc", "NO3"))
+         #  river["selmaprotbas_dd_p"].follow_target_cell = False
+         #  river["selmaprotbas_dd_p"].set(pygetm.input.from_nc(f"Rivers/Inflow_file_{river.name}.nc", "dd_P"))
+    
+   # sim["age_age_of_water"].river_follow[:] = False # By default, precipitation also has age 0
     return sim
-
 
 def create_output(
     output_dir: str,
@@ -192,10 +246,10 @@ def create_output(
     path = Path(output_dir, setup + "_2d.nc")
     output = sim.output_manager.add_netcdf_file(
         str(path),
-        interval=datetime.timedelta(hours=1),
+        interval=datetime.timedelta(hours=24),
         sync_interval=None,
     )
-    output.request("Ht", "zt", "u1", "v1", "tausxu", "tausyv")
+    output.request("Ht", "zt","Dt", "u1", "v1", "tausxu", "tausyv")
     if args.debug_output:
         output.request("maskt", "masku", "maskv")
         output.request("U", "V")
@@ -211,17 +265,19 @@ def create_output(
         )
     output.request("Ht", "uk", "vk", "ww", "SS", "num")
     if args.debug_output:
-        output.request("fpk", "fqk", "advpk", "advqk")  # 'diffpk', 'diffqk')
+        #output.request("fpk", "fqk", "advpk", "advqk")  # 'diffpk', 'diffqk')
+        output.request("fpk", "fqk","advpk", "advqk")  # 'diffpk', 'diffqk')
+
 
     if sim.runtype == pygetm.RunType.BAROCLINIC:
-        output.request("temp", "salt", "rho", "NN", "rad", "sst", "hnt", "nuh")
+        output.request("temp", "salt", "rho", "swr", "NN", "rad", "sst", "hnt", "nuh")
         if args.debug_output:
             output.request("idpdx", "idpdy")
         if use_adaptive:
             output.request("nug", "ga", "dga")
 
-    if sim.fabm:
-        output.request("par", "med_ergom_o2", "med_ergom_OFL", "med_ergom_dd")
+   # if sim.fabm:
+   #     output.request( "selmaprotbas_po", "total_chlorophyll_calculator_result", "selmaprotbas_o2")
 
 
 def run(
@@ -239,11 +295,18 @@ def run(
         sim.start(
             simstart,
             timestep=timestep,
-            split_factor=25,
+            split_factor=20,
             **kwargs,
         )
+        debug_time = datetime.datetime.strptime(
+            "2022-07-15 00:00:00", "%Y-%m-%d %H:%M:%S"
+        )
         while sim.time < simstop:
-            sim.advance()
+            if sim.time < debug_time:
+                x= False
+            else:
+                x = True
+            sim.advance(check_finite=x)
         sim.finish()
 
 
@@ -266,25 +329,20 @@ if __name__ == "__main__":
         "--bathymetry_file",
         type=str,
         help="Name of bathymetry file",
-        default="Bathymetry/bathymetry.nc",
+        default="Bathymetry/bathymetry_smoothed_local_v5.nc",
     )
 
     parser.add_argument(
         "--bathymetry_name",
         type=str,
         help="Name of bathymetry variable",
-        default="bathymetry",
+        default="bathymetry_rx01_local_v",
     )
 
     parser.add_argument(
         "--output_dir", type=str, help="Path to save output files", default="."
     )
 
-    parser.add_argument(
-        "--initial",
-        action="store_true",
-        help="Initial run salinity and temerature are specified",
-    )
     parser.add_argument(
         "--runtype",
         type=int,
@@ -352,7 +410,7 @@ if __name__ == "__main__":
         simstart,
         simstop,
         dryrun=args.dryrun,
-        report=datetime.timedelta(hours=6),
+        report=datetime.timedelta(hours=3),
         report_totals=datetime.timedelta(days=7),
         profile=profile,
     )

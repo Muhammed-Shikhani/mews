@@ -7,12 +7,14 @@ import subprocess
 
 setup = "ohra"
 script = "run_ohra.py"
-np = 4
+np = 8
 
-start_date = date(2022, 1, 1)
-stop_date = date(2023, 1, 1)
+start_date = date(2021, 4, 1)
+stop_date = date(2021, 7, 31)
+
 
 start = start_date
+
 
 while start < stop_date:
     command = [
@@ -49,7 +51,7 @@ while start < stop_date:
 
     command.extend([f"--output_dir", f"{x}"])
 
-    if True:
+    if False:
         print(command)
     else:
         subprocess.run(command)
