@@ -100,7 +100,7 @@ def create_simulation(
         internal_pressure = pygetm.internal_pressure.BlumbergMellor()
 
     if True:
-        airsea = pygetm.FluxesFromMeteo(shortwave_method=pygetm.ShortwaveMethod.DOWNWARD_FLUX)
+        airsea = pygetm.airsea.FluxesFromMeteo(shortwave_method=pygetm.DOWNWARD_FLUX )
 
     if True:
         vertical_coordinates = pygetm.vertical_coordinates.GVC(
