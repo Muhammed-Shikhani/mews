@@ -48,23 +48,23 @@ def create_domain(
     domain.limit_velocity_depth()
     domain.cfl_check()
     domain.mask_shallow(1.0)
-    if rivers:
-       river_list = []
-       # Inflows
-       for river in glob.glob("Rivers/Inflow_*.nc"):
-           name = os.path.basename(river)
-           name = name.replace("Inflow_", "").replace(".nc", "")
-           with netCDF4.Dataset(river) as r:
-               lon = r["lon"][:]
-               lat = r["lat"][:]
-               river_list.append(
-                   domain.rivers.add_by_location(
-                       name,
-                       float(lon),
-                       float(lat),
-                       coordinate_type=pygetm.CoordinateType.LONLAT
-                   )
-               )
+#    if rivers:
+#       river_list = []
+#       # Inflows
+#       for river in glob.glob("Rivers/Inflow_*.nc"):
+#           name = os.path.basename(river)
+#           name = name.replace("Inflow_", "").replace(".nc", "")
+#           with netCDF4.Dataset(river) as r:
+#               lon = r["lon"][:]
+#               lat = r["lat"][:]
+#               river_list.append(
+#                   domain.rivers.add_by_location(
+#                       name,
+#                       float(lon),
+#                       float(lat),
+#                       coordinate_type=pygetm.CoordinateType.LONLAT
+#                   )
+#               )
        # Outflows
  #      for river in glob.glob("Rivers/Outflow.nc"):
  #          name = os.path.basename(river)
@@ -152,7 +152,7 @@ def create_simulation(
     final_kwargs = dict(
         advection_scheme=pygetm.AdvectionScheme.SUPERBEE,
         # gotm=os.path.join(setup_dir, "gotmturb.nml"),
-         airsea=airsea,
+        airsea=airsea,
         internal_pressure=internal_pressure,
         vertical_coordinates=vertical_coordinates,
         delay_slow_ip=True
@@ -198,8 +198,7 @@ def create_simulation(
     sim.airsea.tp.set(pygetm.input.from_nc(ERA_path, "tp") / 3600.0)
     if sim.airsea.shortwave_method == pygetm.DOWNWARD_FLUX:
         ERA_path = "ERA5/ssrd_????.nc"
-        sim.airsea.swr.downwards.set(
-            pygetm.input.from_nc(ERA_path, "ssrd")* ( 0.8/3600.0 )
+        sim.airsea.swr.set(pygetm.input.from_nc(ERA_path, "ssrd")* ( 0.8/3600.0 )
         )
  #   for river in sim.rivers.values():
  #      if "outflow" in river.name:
