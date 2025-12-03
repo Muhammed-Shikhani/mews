@@ -10,7 +10,7 @@ script = "run_ohra.py"
 np = 8
 
 start_date = date(2021, 4, 1)
-stop_date = date(2021, 7, 31)
+stop_date = date(2021, 7 , 31)
 
 
 start = start_date

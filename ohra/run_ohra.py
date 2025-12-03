@@ -197,8 +197,9 @@ def create_simulation(
     ERA_path = "ERA5/precip_????.nc"
     sim.airsea.tp.set(pygetm.input.from_nc(ERA_path, "tp") / 3600.0)
     if sim.airsea.shortwave_method == pygetm.DOWNWARD_FLUX:
-        ERA_path = "ERA5/ssrd_????.nc"
-        sim.airsea.swr.set(pygetm.input.from_nc(ERA_path, "ssrd")* ( 0.8/3600.0 )
+        ERA_path = "ERA5/ssrd_2021.nc"
+        sim.airsea.swr_downwards.set(
+            pygetm.input.from_nc(ERA_path, "ssrd")* ( 0.8/3600.0 )
         )
  #   for river in sim.rivers.values():
  #      if "outflow" in river.name:
@@ -240,6 +241,7 @@ def create_output(
         "t2m",
         "tcc",
         "tp",
+  #      "ssrd",
     )
 
     path = Path(output_dir, setup + "_2d.nc")
@@ -328,14 +330,16 @@ if __name__ == "__main__":
         "--bathymetry_file",
         type=str,
         help="Name of bathymetry file",
-        default="Bathymetry/bathymetry_smoothed_local_v5.nc",
+    #    default="Bathymetry/bathymetry_smoothed_local_v5.nc",
+        default="Bathymetry/bathymetry.nc",
     )
 
     parser.add_argument(
         "--bathymetry_name",
         type=str,
         help="Name of bathymetry variable",
-        default="bathymetry_rx01_local_v",
+    #    default="bathymetry_rx01_local_v",
+        default="bathymetry",
     )
 
     parser.add_argument(

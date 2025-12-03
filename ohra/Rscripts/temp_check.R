@@ -5,7 +5,7 @@ library(dplyr)
 library(lubridate)
 
 # Set working directory
-setwd("/home/muhammed/mews/ohra_smoothed2/")
+setwd("/home/muhammed/mews/ohra/")
 
 # Read observation data
 #obs <- read.csv("/home/muhammed/Projects/Mews_Data_Ohra/Processed_data/Temp_profiles.csv")
