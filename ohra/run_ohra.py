@@ -202,7 +202,7 @@ def create_simulation(
             pygetm.input.from_nc(ERA_path, "ssrd")* ( 1/3600.0 )
         )
     for river in sim.rivers.values():
-        if "Outflow" in river.name:
+        if "outflow" in river.name:
            ### Outflow
             river.flow.set(pygetm.input.from_nc(f"Rivers/Outflow_file_{river.name}.nc", "flow"))
         else:
