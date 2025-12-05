@@ -48,35 +48,35 @@ def create_domain(
     domain.limit_velocity_depth()
     domain.cfl_check()
     domain.mask_shallow(1.0)
-#    if rivers:
-#       river_list = []
-#       # Inflows
-#       for river in glob.glob("Rivers/Inflow_*.nc"):
-#           name = os.path.basename(river)
-#           name = name.replace("Inflow_", "").replace(".nc", "")
-#           with netCDF4.Dataset(river) as r:
-#               lon = r["lon"][:]
-#               lat = r["lat"][:]
-#               river_list.append(
-#                   domain.rivers.add_by_location(
-#                       name,
-#                       float(lon),
-#                       float(lat),
-#                       coordinate_type=pygetm.CoordinateType.LONLAT
-#                   )
-#               )
-       # Outflows
- #      for river in glob.glob("Rivers/Outflow.nc"):
- #          name = os.path.basename(river)
- #          name = name.replace("Outflow", "").replace(".nc", "")
- #          with netCDF4.Dataset(river) as r:
- #              lon = r["lon"][:]
- #              lat = r["lat"][:]
- #              river_list.append(
- #                  domain.rivers.add_by_location(
- #                      name, float(lon), float(lat), coordinate_type=pygetm.CoordinateType.LONLAT
- #                  )
- #             )
+    if rivers:
+        river_list = []
+        # Inflows
+        for river in glob.glob("Rivers/Inflow_file*.nc"):
+            name = os.path.basename(river)
+            name = name.replace("Inflow_file_", "").replace(".nc", "")
+            with netCDF4.Dataset(river) as r:
+                lon = r["lon"][:]
+                lat = r["lat"][:]
+                river_list.append(
+                    domain.rivers.add_by_location(
+                        name,
+                        float(lon),
+                        float(lat),
+                        coordinate_type=pygetm.CoordinateType.LONLAT
+                    )
+                )
+        # Outflows
+        for river in glob.glob("Rivers/Outflow_file*.nc"):
+            name = os.path.basename(river)
+            name = name.replace("Outflow_file_", "").replace(".nc", "")
+            with netCDF4.Dataset(river) as r:
+                lon = r["lon"][:]
+                lat = r["lat"][:]
+                river_list.append(
+                    domain.rivers.add_by_location(
+                        name, float(lon), float(lat), coordinate_type=pygetm.CoordinateType.LONLAT
+                    )
+                )
 
     return domain
 
@@ -199,17 +199,17 @@ def create_simulation(
     if sim.airsea.shortwave_method == pygetm.DOWNWARD_FLUX:
         ERA_path = "ERA5/ssrd_2021.nc"
         sim.airsea.swr_downwards.set(
-            pygetm.input.from_nc(ERA_path, "ssrd")* ( 0.8/3600.0 )
+            pygetm.input.from_nc(ERA_path, "ssrd")* ( 1/3600.0 )
         )
- #   for river in sim.rivers.values():
- #      if "outflow" in river.name:
- #          ### Outflow
- #          river.flow.set(pygetm.input.from_nc(f"Rivers/Outflow_file_{river.name}.nc", "q"))
- #      else:
- #          ### Inflow
- #          river.flow.set(pygetm.input.from_nc(f"Rivers/Inflow_file_{river.name}.nc", "q"))         
- #          river["temp"].follow_target_cell = False #(True makes it use the value from the basin)
- #          river["temp"].set(pygetm.input.from_nc(f"Rivers/Inflow_file_{river.name}.nc", "Temp"))
+    for river in sim.rivers.values():
+        if "Outflow" in river.name:
+           ### Outflow
+            river.flow.set(pygetm.input.from_nc(f"Rivers/Outflow_file_{river.name}.nc", "flow"))
+        else:
+          ### Inflow
+           river.flow.set(pygetm.input.from_nc(f"Rivers/Inflow_file_{river.name}.nc", "flow"))         
+           river["temp"].follow_target_cell = False #(True makes it use the value from the basin)
+           river["temp"].set(pygetm.input.from_nc(f"Rivers/Inflow_file_{river.name}.nc", "temp"))
            # Nutrients
          #  river["selmaprotbas_po"].follow_target_cell = False #(True makes it use the value from the basin)
          #  river["selmaprotbas_po"].set(pygetm.input.from_nc(f"Rivers/Inflow_file_{river.name}.nc", "PO4"))  
@@ -330,16 +330,16 @@ if __name__ == "__main__":
         "--bathymetry_file",
         type=str,
         help="Name of bathymetry file",
-    #    default="Bathymetry/bathymetry_smoothed_local_v5.nc",
-        default="Bathymetry/bathymetry.nc",
+        default="Bathymetry/bathymetry_smoothed_local_v5.nc",
+     #   default="Bathymetry/bathymetry.nc",
     )
 
     parser.add_argument(
         "--bathymetry_name",
         type=str,
         help="Name of bathymetry variable",
-    #    default="bathymetry_rx01_local_v",
-        default="bathymetry",
+        default="bathymetry_rx01_local_v",
+     #   default="bathymetry",
     )
 
     parser.add_argument(
