@@ -3,7 +3,7 @@ instances:
     model: selmaprotbas/selmaprotbas
     parameters:
       env_type: fresh                    # (Define environment type, either fresh or marine), default = marine
-      altitude : 525                     # altitude in meters above sea level (m.a.s.l.), default=0.0
+     # altitude : 525                     # altitude in meters above sea level (m.a.s.l.), default=0.0
       wdz: -0.6                   # vertical velocity of detritus (positive: upwards/floating, negative: downwards/sinking) (m/d), default = -4.5
       wpo4: -1                         # vertical velocity of suspended P-Fe (positive: upwards/floating, negative: downwards/sinking) (m/d), default = -1.0
       dn: 0.003 # detritus mineralization rate (1/d), default = 0.003
@@ -26,7 +26,7 @@ instances:
       br0: 0.005 # 0.012 # bioresuspension rate (1/d), default = 0.03
       fds: 0.568579306023183 # fraction of sediment remineralization fueled by denitrification (-), default = 0.7
       pvel: 10.0 # piston velocity (m/d), default = 5.0
-      newflux: 5                         # oxygen flux type (-), default = 2
+      newflux: 3                         # oxygen flux type (-), default = 2
     initialization:
       nn: 75.0 # nitrate (mmol N/m3)
       aa: 1.13 # ammonium (mmol N/m3)
