@@ -30,7 +30,7 @@ def read_data(fname: str):
     return x, y, z
 
 
-def interp_grid(x, y, z, xlen=50, ylen=50, zref=520, method="linear"):
+def interp_grid(x, y, z, xlen=75, ylen=75, zref=525, method="linear"):
     from matplotlib import pyplot
 
     print(f"Interpolating irregular data to regular grid")
@@ -92,9 +92,9 @@ def interp_grid(x, y, z, xlen=50, ylen=50, zref=520, method="linear"):
     pc = ax.pcolormesh(xgrid, ygrid, zgrid)
     cb = fig.colorbar(pc)
     if grid_type == CARTESIAN:
-        fig.savefig("bathymetry_cartesian.png")
+        fig.savefig("bathymetry_cartesian_525_100.png")
     else:
-        fig.savefig("bathymetry_spherical.png")
+        fig.savefig("bathymetry_spherical_525_100.png")
 
     return data_xr
 
@@ -172,14 +172,14 @@ def print_summary():
         dx = (x.max() - x.min()) / xlen
         dy = (y.max() - y.min()) / ylen
         print(f"(dx,dy) = ({dx:.2f}, {dy:.2f})")
-        data_xr.to_netcdf("bathymetry_cartesian.nc")
+        data_xr.to_netcdf("bathymetry_cartesian_525_100.nc")
     else:
         print(f"(xmin,xmax) = ({x.min():.4f}, {x.max():.4f})")
         print(f"(ymin,ymax) = ({y.min():.4f}, {y.max():.4f})")
         dx = (x.max() - x.min()) / xlen
         dy = (y.max() - y.min()) / ylen
         print(f"(dx,dy) =     ({dx:.5e}, {dy:.5e})")
-        data_xr.to_netcdf("bathymetry_spherical.nc")
+        data_xr.to_netcdf("bathymetry_spherical_525_100.nc")
 
 
 
@@ -197,7 +197,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--epsg", nargs="?", help="EPGS code", default="EPSG:4326")
     parser.add_argument(
-        "--nc_path", nargs="?", help="Output NetCDF file", default="bathymetry.nc"
+        "--nc_path", nargs="?", help="Output NetCDF file", default="bathymetry_525_75.nc"
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="debug output")
     args = parser.parse_args()
